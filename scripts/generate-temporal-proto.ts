@@ -38,6 +38,11 @@ const argv = yargs(process.argv.slice(2))
     '$0 [options]',
     'Generate the local (gitignored) @temporalio/proto types from temporalio/api protos.',
   )
+  .option('repo', {
+    type: 'string',
+    describe:
+      'GitHub repository holding the protos, as owner/name (default: temporalio/api)',
+  })
   .option('ref', {
     type: 'string',
     describe:
@@ -58,12 +63,16 @@ const argv = yargs(process.argv.slice(2))
     describe:
       'Undo local setup: remove the @temporalio/proto override, delete the generated vendor output, revert server/go.mod, and reinstall',
   })
-  .conflicts('reset', ['ref', 'sync-ui-server', 'ui-server-version'])
+  .conflicts('reset', ['repo', 'ref', 'sync-ui-server', 'ui-server-version'])
   .implies('ui-server-version', 'sync-ui-server')
   .example('$0', 'Generate from the latest temporalio/api main')
   .example(
     '$0 --ref v1.63.3',
     'Generate from a specific tag, branch, or commit',
+  )
+  .example(
+    '$0 --repo moedash/api --ref moe/AI-198-stream-protos',
+    'Generate from a branch of a fork',
   )
   .example(
     '$0 --sync-ui-server',
@@ -77,6 +86,7 @@ const argv = yargs(process.argv.slice(2))
   .help()
   .parseSync();
 
+const repo = argv.repo ?? REPO;
 const ref = argv.ref ?? DEFAULT_REF;
 const syncUiServer = argv.syncUiServer;
 const uiServerVersion = argv.uiServerVersion ?? 'latest';
@@ -291,11 +301,11 @@ const main = (): void => {
     return;
   }
 
-  const commit = resolveCommit(REPO, ref);
-  log(`Fetching ${REPO}@${commit}${commit === ref ? '' : ` (ref: ${ref})`}`);
-  fetchApiRepoAtCommit(REPO, commit);
+  const commit = resolveCommit(repo, ref);
+  log(`Fetching ${repo}@${commit}${commit === ref ? '' : ` (ref: ${ref})`}`);
+  fetchApiRepoAtCommit(repo, commit);
 
-  generate(REPO, commit);
+  generate(repo, commit);
   applyLocalOverride();
 
   if (syncUiServer) {
@@ -304,7 +314,7 @@ const main = (): void => {
 
   pnpmInstall();
 
-  log(`Done. Generated from ${REPO}@${commit}.`);
+  log(`Done. Generated from ${repo}@${commit}.`);
   log(
     'vendor/temporalio-proto + the package.json override are LOCAL only — do not commit them.',
   );
