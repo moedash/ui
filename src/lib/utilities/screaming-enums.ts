@@ -14,6 +14,7 @@ import type {
   BatchOperationState,
   BatchOperationType,
 } from '$lib/types/batch';
+import type { ChannelKind, ChannelSubscriptionKind } from '$lib/types/channels';
 import type { PendingActivityState } from '$lib/types/events';
 import type {
   WorkflowTaskFailedCause as ReadableWorkflowTaskFailedCause,
@@ -121,6 +122,16 @@ export const toCallbackStateReadable = (
 ): CallbackState => {
   if (!state) return 'Unspecified' as unknown as CallbackState;
   return fromScreamingEnum(state, 'CallbackState');
+};
+
+export const toChannelKindReadable = (
+  kind?: ChannelKind | null,
+): ChannelSubscriptionKind => {
+  if (!kind) return 'Unspecified';
+  return fromScreamingEnum(
+    kind,
+    'ChannelKind',
+  ) as unknown as ChannelSubscriptionKind;
 };
 
 export const toWorkerStatusReadable = (

@@ -1,6 +1,10 @@
 import { mapValues } from 'es-toolkit';
 
 import type {
+  ChannelSubscription,
+  ChannelSubscriptionInfo,
+} from '$lib/types/channels';
+import type {
   Callbacks,
   PendingActivity,
   PendingActivityInfo,
@@ -20,6 +24,7 @@ import type {
 import { parseRawPayloadToJSON } from '$lib/utilities/decode-payload';
 import {
   toCallbackStateReadable,
+  toChannelKindReadable,
   toPendingActivityStateReadable,
   toPendingNexusOperationStateReadable,
   toWorkflowStatusReadable,
@@ -63,6 +68,28 @@ const toCallbacks = (callbacks?: Callbacks): Callback[] => {
       blockedReason: callback.blockedReason ?? undefined,
       callback: (callback.callback ?? undefined) as Callback['callback'],
       state: toCallbackStateReadable(callback.state ?? undefined),
+    };
+  });
+};
+
+// A missing counter is the proto default of zero. The pending counter stays
+// undefined when no notification waits, so the UI can leave the cell blank.
+export const toChannelSubscriptions = (
+  subscriptions?: ChannelSubscriptionInfo[] | null,
+): ChannelSubscription[] => {
+  if (!subscriptions) return [];
+  return subscriptions.map((subscription): ChannelSubscription => {
+    const pending = subscription.pendingNotification;
+    return {
+      channel: subscription.channel ?? '',
+      kind: toChannelKindReadable(subscription.kind),
+      subscribedEventId: String(subscription.subscribedEventId ?? 0),
+      lastCounter: String(subscription.lastCounter ?? 0),
+      pendingCounter: pending ? String(pending.counter ?? 0) : undefined,
+      scheduledCounter: String(subscription.scheduledCounter ?? 0),
+      listenerCount: subscription.listenerCount ?? 0,
+      retainedCount: subscription.retainedCount ?? 0,
+      acceptedCount: String(subscription.acceptedCount ?? 0),
     };
   });
 };
@@ -140,6 +167,9 @@ export const toWorkflowExecution = (
     toPendingNexusOperations(response?.pendingNexusOperations);
   const pendingWorkflowTask = response?.pendingWorkflowTask ?? undefined;
   const callbacks = toCallbacks(response?.callbacks);
+  const channelSubscriptions = toChannelSubscriptions(
+    response?.channelSubscriptions,
+  );
   const rootExecution = info?.rootExecution ?? undefined;
   const versioningInfo = info?.versioningInfo ?? undefined;
   const priority = info?.priority ?? undefined;
@@ -179,6 +209,7 @@ export const toWorkflowExecution = (
     pendingNexusOperations,
     pendingWorkflowTask,
     callbacks,
+    channelSubscriptions,
     versioningInfo,
     priority,
     summary,

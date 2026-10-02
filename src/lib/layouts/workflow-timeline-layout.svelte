@@ -12,6 +12,7 @@
   import DownloadEventHistoryModal from '$lib/components/workflow/download-event-history-modal.svelte';
   import InputAndResults from '$lib/components/workflow/input-and-results.svelte';
   import WorkflowCallbacks from '$lib/components/workflow/workflow-callbacks.svelte';
+  import WorkflowChannelSubscriptions from '$lib/components/workflow/workflow-channel-subscriptions.svelte';
   import {
     HISTORY_CTX,
     type HistoryContext,
@@ -143,6 +144,11 @@
   {/if}
   {#if workflow?.callbacks?.length}
     <WorkflowCallbacks callbacks={workflow.callbacks} />
+  {/if}
+  {#if workflow?.channelSubscriptions?.length}
+    <WorkflowChannelSubscriptions
+      channelSubscriptions={workflow.channelSubscriptions}
+    />
   {/if}
 </div>
 

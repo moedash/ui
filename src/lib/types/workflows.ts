@@ -10,6 +10,7 @@ import type {
 } from '$lib/types';
 import type { Callback } from '$lib/types/nexus';
 
+import type { ChannelSubscription, ChannelSubscriptionInfo } from './channels';
 import type { VersioningInfo } from './deployments';
 import type {
   PendingActivity,
@@ -118,6 +119,7 @@ export type WorkflowExecutionAPIResponse = Optional<{
   callbacks: Callback[];
   pendingWorkflowTask: PendingWorkflowTaskInfo;
   workflowExtendedInfo: WorkflowExtendedInfo;
+  channelSubscriptions: ChannelSubscriptionInfo[];
 }>;
 
 export type WorkflowStatus =
@@ -215,6 +217,7 @@ export type WorkflowExecution = {
   workflowExecutionTimeout?: Duration;
   canBeTerminated: boolean;
   callbacks: Callback[];
+  channelSubscriptions: ChannelSubscription[];
   versioningInfo?: VersioningInfo;
   priority?: Priority;
   summary?: Payload;

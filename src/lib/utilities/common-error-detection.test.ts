@@ -30,6 +30,7 @@ const makeWorkflow = (
     pendingChildren: [],
     pendingNexusOperations: [],
     callbacks: [],
+    channelSubscriptions: [],
     isRunning: true,
     isPaused: false,
     canBeTerminated: true,
