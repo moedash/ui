@@ -213,4 +213,29 @@ export const Strings = {
     title: 'Workflow Task Timed Out',
     description: 'The Workflow Task encountered a timeout.',
   },
+  BadAppendStreamRecordsAttributes: {
+    title: 'Bad Append Stream Records Attributes',
+    description:
+      'A workflow task completed with an invalid AppendStreamRecords command.',
+  },
+  BadSubscribeStreamAttributes: {
+    title: 'Bad Subscribe Stream Attributes',
+    description:
+      'A workflow task completed with an invalid SubscribeStream command.',
+  },
+  StreamRangeUnavailable: {
+    title: 'Stream Range Unavailable',
+    description:
+      'A workflow task could not be started because a stream range recorded in History can no longer be served, for example after truncation or beyond the replay bound. Check the workflow task failure message for more information.',
+  },
+  BadSubscribeNotificationChannelAttributes: {
+    title: 'Bad Subscribe Notification Channel Attributes',
+    description:
+      'A SubscribeNotificationChannel command named an empty or too-long channel, or hit a subscription or listener limit.',
+  },
+  BadUnsubscribeNotificationChannelAttributes: {
+    title: 'Bad Unsubscribe Notification Channel Attributes',
+    description:
+      'An UnsubscribeNotificationChannel command named an empty or too-long channel.',
+  },
 } as const;
