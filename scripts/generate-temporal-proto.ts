@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -148,6 +149,78 @@ const collectProtoFiles = (baseDir: string): string[] => {
   return results.sort();
 };
 
+// The published package turns the protobufjs reflection root into plain
+// namespaces and enum objects, which the UI reads at module load. Reuse its
+// helper so the generated package behaves the same at runtime.
+const findPublishedPatch = (): string => {
+  const pnpmDir = join(projectRoot, 'node_modules', '.pnpm');
+  const published = existsSync(pnpmDir)
+    ? readdirSync(pnpmDir)
+        .filter(
+          (dir) =>
+            dir.startsWith('@temporalio+proto@') && !dir.includes('file+'),
+        )
+        .sort()
+        .reverse()
+    : [];
+  for (const dir of published) {
+    const candidate = join(
+      pnpmDir,
+      dir,
+      'node_modules',
+      '@temporalio',
+      'proto',
+      'lib',
+      'patch-protobuf-root.js',
+    );
+    if (existsSync(candidate)) return candidate;
+  }
+  const previous = join(packageRoot, 'lib', 'patch-protobuf-root.js');
+  if (existsSync(previous)) return previous;
+  throw new Error(
+    'Could not find patch-protobuf-root.js in the published @temporalio/proto',
+  );
+};
+
+// pnpm resolves the file: override through this package.json, and the entry
+// files mirror the published package's layout so the override is a drop-in.
+const writePackageFiles = (): void => {
+  const patchSource = findPublishedPatch();
+  const patchTarget = join(packageRoot, 'lib', 'patch-protobuf-root.js');
+  mkdirSync(dirname(patchTarget), { recursive: true });
+  if (patchSource !== patchTarget) {
+    copyFileSync(patchSource, patchTarget);
+  }
+  writeFileSync(
+    join(packageRoot, 'package.json'),
+    JSON.stringify(
+      {
+        name: overrideName,
+        version: '0.0.0-local',
+        private: true,
+        main: 'protos/index.js',
+        types: 'protos/index.d.ts',
+        dependencies: { long: '^5.2.3', protobufjs: '^7.6.4' },
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+  writeFileSync(
+    join(outputDir, 'root.js'),
+    "const $protobuf = require('protobufjs/light');\n" +
+      "$protobuf.util.Long = require('long');\n" +
+      '$protobuf.configure();\n' +
+      "const { patchProtobufRoot } = require('../lib/patch-protobuf-root');\n" +
+      "module.exports = patchProtobufRoot(require('./json-module'));\n",
+  );
+  writeFileSync(
+    join(outputDir, 'index.js'),
+    "module.exports = require('./root');\n",
+  );
+  writeFileSync(join(outputDir, 'index.d.ts'), "export * from './root';\n");
+};
+
 const generate = (repo: string, commit: string): void => {
   const temporalApiDir = join(apiCheckoutDir, 'temporal', 'api');
   if (!existsSync(temporalApiDir)) {
@@ -219,6 +292,7 @@ const generate = (repo: string, commit: string): void => {
   run(process.execPath, [pbtsBin, '-o', rootDtsPath, staticModulePath]);
   rmSync(staticModulePath, { force: true });
 
+  writePackageFiles();
   writeFileSync(
     join(packageRoot, 'GENERATED_FROM'),
     `${repo}@${commit}\n` +
@@ -245,12 +319,19 @@ const syncUiServerApi = (version: string): void => {
   log('ui-server rebuilt. Restart `pnpm dev:local-temporal` to pick it up.');
 };
 
+// The package is also a devDependency, so the presence checks below match the
+// override's full entry rather than the package name alone.
+const overrideEntry = `"${overrideName}": "${overrideSpec}"`;
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
 // Add the local pnpm override that points @temporalio/proto at the generated
 // package. Uses a targeted insertion so the working-tree diff is a single line
 // (this change is local and must not be committed).
 const applyLocalOverride = (): void => {
   const content = readFileSync(packageJsonPath, 'utf8');
-  if (content.includes(`"${overrideName}"`)) {
+  if (content.includes(overrideEntry)) {
     return;
   }
   const updated = content.replace(
@@ -269,7 +350,7 @@ const applyLocalOverride = (): void => {
 const removeLocalOverride = (): void => {
   const content = readFileSync(packageJsonPath, 'utf8');
   const updated = content.replace(
-    new RegExp(`\\n\\s*"${overrideName}"\\s*:\\s*"[^"]*",?`),
+    new RegExp(`\\n\\s*${escapeRegExp(overrideEntry)},?`),
     '',
   );
   if (updated !== content) {
