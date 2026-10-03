@@ -50,4 +50,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 )
 
-replace go.temporal.io/api => github.com/moedash/api-go v1.63.6-0.20261003021656-71792676a9fd
+replace go.temporal.io/api => github.com/moedash/api-go v1.63.6-0.20261003080812-cc8cb1b67d9a
