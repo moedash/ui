@@ -1,4 +1,4 @@
-import type { Payload, WorkflowExecutionInput } from '$lib/types';
+import type { Payload } from '$lib/types';
 
 // Wire shape of temporal.api.notification.v1.ChannelKind and the messages
 // around it, written by hand because the published @temporalio/proto package
@@ -8,12 +8,26 @@ export type ChannelKind =
   | 'CHANNEL_KIND_INDEPENDENT'
   | 'CHANNEL_KIND_LINKED';
 
+export type ExecutionType =
+  | 'EXECUTION_TYPE_UNSPECIFIED'
+  | 'EXECUTION_TYPE_WORKFLOW'
+  | 'EXECUTION_TYPE_ACTIVITY'
+  | 'EXECUTION_TYPE_NEXUS_OPERATION';
+
+// The owner of a linked channel. A workflow and a standalone activity are
+// told apart by the type, so the id is a business id rather than a workflow id.
+export type Execution = {
+  type?: ExecutionType | null;
+  businessId?: string | null;
+  runId?: string | null;
+};
+
 export type ChannelNotification = {
   channel?: string | null;
   position?: string | null;
   counter?: string | number | null;
   metadata?: Record<string, Payload> | null;
-  linkedTo?: WorkflowExecutionInput | null;
+  linkedTo?: Execution | null;
 };
 
 export type ChannelSubscriptionInfo = {
